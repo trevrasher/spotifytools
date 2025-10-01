@@ -5,6 +5,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --green: #1DB954; 
 }
 
 @theme inline {
@@ -22,7 +23,7 @@
 }
 
 .spotify-green {
-  color: #1DB954; 
+  color: var(--green);
 }
 
 body {
@@ -45,4 +46,9 @@ body {
   position: relative;   
   flex-direction:row;
   gap:4vw;
+}
+
+.artist-listing {
+  border: 2px solid var(--green);
+  border-radius: 6px;
 }
