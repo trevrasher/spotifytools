@@ -6,6 +6,7 @@
   --background: #ffffff;
   --foreground: #171717;
   --green: #1DB954; 
+  --gray: #464d4a;
 }
 
 @theme inline {
@@ -49,6 +50,53 @@ body {
 }
 
 .artist-listing {
-  border: 2px solid var(--green);
+  border: 2px solid var(--gray);
   border-radius: 6px;
+  width:200px;
+  margin-top:4px;
+  cursor:pointer;
+}
+
+.artist-listing.selected-artist {
+  border: 2px solid var(--green);
+}
+
+.playlist-container {
+  border: 2px solid var(--gray);
+  border-radius: 6px;
+  min-height:200px;
+}
+
+.playlist-input {
+  border: 2px solid var(--green);
+  border-radius:6px;
+  min-height:40px;
+  margin:12px;
+  display:flex;
+  text-align:center;
+
+}
+.main-content {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2rem; 
+  margin-top:10px;
+}
+
+.playlist {
+  border: 2px solid var(--gray);
+  border-radius: 6px;
+  min-height:50px;
+  margin-left:12px;
+  margin-right:12px;
+  margin-top:6px;
+  margin-bottom:8px;
+
+}
+
+.playlist-text {
+  display:flex;
+  align-items: center;
+  justify-content:center;
 }
