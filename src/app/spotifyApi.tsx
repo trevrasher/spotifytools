@@ -1,3 +1,5 @@
+import { Playlist } from "./page";
+
 export interface SpotifyArtist {
   external_urls: { spotify: string };
   href: string;
@@ -74,6 +76,14 @@ export interface SpotifyTracksResponse {
   items: SpotifyTrackItem[];
 }
 
+export interface filteredArtist {
+  artistName:string;
+  count: number;
+  image: string;
+  trackIDs: SpotifyTrackItem[];
+}
+
+
 
 export async function fetchLikedSongs(accessToken: string | undefined): Promise<SpotifyTrackItem[] | null> {
     const limit = 50;
@@ -118,12 +128,13 @@ export async function fetchLikedSongs(accessToken: string | undefined): Promise<
 }
 
 export function artistFilter(data: SpotifyTrackItem[]) {
-    const artists: { [artist: string]: { count: number, image: string, trackIDs: SpotifyTrackItem[] } } = {};
+    const artists: { [name: string]: filteredArtist } = {};
     data.forEach((trackItem: SpotifyTrackItem) => {
         const artist = trackItem.track.artists[0];
         const name = artist.name;
         if (!artists[name]) {
             artists[name] = {
+                artistName: name,
                 count: 1,
                 image: trackItem.track.album.images[0]?.url || "",
                 trackIDs: [trackItem]
@@ -133,5 +144,9 @@ export function artistFilter(data: SpotifyTrackItem[]) {
             artists[name].trackIDs.push(trackItem);
         }
     });
-    return artists;
+    return Object.values(artists);
+}
+
+export function playlistUpload(playlist: Playlist) {
+  
 }
