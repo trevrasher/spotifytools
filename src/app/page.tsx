@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { fetchLikedSongs, artistFilter, SpotifyTrackItem, filteredArtist } from "./spotifyApi";
+import { fetchLikedSongs, artistFilter, SpotifyTrackItem, filteredArtist, multiplePlaylistCreation} from "./spotifyApi";
 
 export interface Playlist {
   playlistName: string;
@@ -112,6 +112,7 @@ export default function Home() {
               </div>
             ))}
           </div>
+          <button className = "submitPlaylistButton" onClick={() =>multiplePlaylistCreation(session?.accessToken, playlistArray)}> submit playlist button </button>
         </div>
       </div>
     </>
