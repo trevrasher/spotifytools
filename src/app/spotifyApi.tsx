@@ -1,4 +1,4 @@
-import { access } from "fs";
+"use server"
 import { Playlist } from "./page";
 
 export interface SpotifyArtist {
@@ -75,6 +75,18 @@ export interface SpotifyTracksResponse {
   previous: string | null;
   total: number;
   items: SpotifyTrackItem[];
+}
+
+export interface SpotifySearchResponse {
+  tracks: {
+    href: string;
+    limit: number;
+    next: string | null;
+    offset: number;
+    previous: string | null;
+    total: number;
+    items: SpotifyTrack[]; 
+  };
 }
 
 export interface filteredArtist {
@@ -191,7 +203,7 @@ async function createNewPlaylist(accessToken: string | undefined, playlistName: 
 }
 
 async function addToPlaylist(accessToken: string | undefined, songList: string[], playlistID: string | null) {
-  const maxChunkSize = 100; // Spotify's actual limit is 100 tracks per request
+  const maxChunkSize = 100; 
   
   for (let i = 0; i < songList.length; i += maxChunkSize) {
     const chunk = songList.slice(i, i + maxChunkSize);
@@ -247,26 +259,26 @@ async function getCurrentUserID (accessToken: string | undefined) {
 
 }
 
-export function artistFilter(data: SpotifyTrackItem[]) {
-    const artists: { [name: string]: filteredArtist } = {};
-    data.forEach((trackItem: SpotifyTrackItem) => {
-        const artist = trackItem.track.artists[0];
-        const name = artist.name;
-        if (!artists[name]) {
-            artists[name] = {
-                artistName: name,
-                count: 1,
-                image: trackItem.track.album.images[0]?.url || "",
-                trackIDs: [trackItem]
-            };
-        } else {
-            artists[name].count += 1;
-            artists[name].trackIDs.push(trackItem);
-        }
-    });
-    return Object.values(artists);
+
+async function threeSongSearch(youtubeTitle: string, accessToken: string | undefined) {
+  const res = await fetch(`https://api.spotify.com/v1/search?q=${youtubeTitle}&type=track&limit=3`, {
+    method:"GET",
+    headers: { Authorization: `Bearer ${accessToken}`},
+  })
+
+  if (!res.ok) {
+    const error = await res.json();
+    console.error("Spotify API error (getCurrentUserID):", error);
+    return [];
+  }
+  const data: SpotifySearchResponse  = await res.json();
+  const trackArray: SpotifyTrack[] = data.tracks.items;
+  return trackArray;
+  
 }
 
-export function playlistUpload(playlist: Playlist) {
-  
+export async function multiThreeSongSearch(youtubeTitles: string[], accessToken: string | undefined): Promise<SpotifyTrack[][]> {
+  const promises = youtubeTitles.map(title => threeSongSearch(title, accessToken));
+  const results = await Promise.all(promises);
+  return results;
 }

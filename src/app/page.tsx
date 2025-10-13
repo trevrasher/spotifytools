@@ -2,7 +2,9 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { fetchLikedSongs, artistFilter, SpotifyTrackItem, filteredArtist, multiplePlaylistCreation} from "./spotifyApi";
+import { fetchLikedSongs, SpotifyTrackItem, filteredArtist, multiplePlaylistCreation} from "./spotifyApi";
+import { artistFilter } from "./utils/spotifyUtils";
+import Header from "@/components/header";
 
 export interface Playlist {
   playlistName: string;
@@ -46,13 +48,7 @@ export default function Home() {
 
   return (
     <>
-      <header className="title">
-        <h1>
-          <span className="spotify-green">Spotify</span>Tools
-        </h1>
-        <h2>Playlist Management</h2>
-        <h2>YouTube to Spotify</h2>
-      </header>
+      <Header></Header>
       <div className="main-content">
 {/* LIST OF ARTISTS */}
         <ol>
@@ -65,7 +61,7 @@ export default function Home() {
         </ol>
 {/* PLAYLIST */}
         <div className="playlist-container">
-          <form onSubmit={handleSubmit} className="template-form">
+          <form onSubmit={handleSubmit}>
             <input
               type="text"
               value={playlistName}
