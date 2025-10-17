@@ -180,7 +180,7 @@ export async function fetchLikedSongs(accessToken: string | undefined): Promise<
     return allTracks;
 }
 
-async function createNewPlaylist(accessToken: string | undefined, playlistName: string) {
+export async function createNewPlaylist(accessToken: string | undefined, playlistName: string) {
   const id = await getCurrentUserID(accessToken);
   const res = await fetch(`https://api.spotify.com/v1/users/${id}/playlists`, {
     method:"POST",
@@ -202,7 +202,7 @@ async function createNewPlaylist(accessToken: string | undefined, playlistName: 
   return data.id;
 }
 
-async function addToPlaylist(accessToken: string | undefined, songList: string[], playlistID: string | null) {
+export async function addToPlaylist(accessToken: string | undefined, songList: string[], playlistID: string | null) {
   const maxChunkSize = 100; 
   
   for (let i = 0; i < songList.length; i += maxChunkSize) {
@@ -259,16 +259,58 @@ async function getCurrentUserID (accessToken: string | undefined) {
 
 }
 
+let globalRateLimitUntil = 0;
+
+async function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function checkRateLimit(): Promise<void> {
+  const now = Date.now();
+  if (globalRateLimitUntil > now) {
+    const waitTime = globalRateLimitUntil - now;
+    console.log(`Global rate limit active. Waiting ${waitTime}ms`);
+    await delay(waitTime);
+  }
+}
+
 
 async function threeSongSearch(youtubeTitle: string, accessToken: string | undefined) {
-  const res = await fetch(`https://api.spotify.com/v1/search?q=${youtubeTitle}&type=track&limit=3`, {
-    method:"GET",
-    headers: { Authorization: `Bearer ${accessToken}`},
-  })
+  if (!youtubeTitle || youtubeTitle.trim() === '') {
+    console.error("Empty or invalid YouTube title provided");
+    return [];
+  }
+  if(youtubeTitle == "Deleted video") {
+    console.error("Deleted video provided");
+    return [];
+  }
+  await checkRateLimit();
+  
+  const searchQuery = encodeURIComponent(youtubeTitle.trim());
+  const res = await fetch(`https://api.spotify.com/v1/search?q=${searchQuery}&type=track&limit=3`, {
+      method: "GET",
+      headers: { 
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+    });
 
+  if(res.status===429) {
+    const waitHeader = res.headers.get('Retry-After');
+    if (waitHeader) {
+      const waitTime = parseInt(waitHeader) * 1000; 
+      globalRateLimitUntil = Date.now() + waitTime;
+      console.log(`Rate limited for "${youtubeTitle}". Setting global rate limit for ${waitTime}ms (threeSongSearch)`);
+      await delay(waitTime);
+      return threeSongSearch(youtubeTitle, accessToken);
+    } else {
+      console.log(`No waitHeader found (threeSongSearch)`);
+      return [];
+    }
+  }
   if (!res.ok) {
     const error = await res.json();
-    console.error("Spotify API error (getCurrentUserID):", error);
+    console.error("Spotify API error (threeSongSearch:", error);
     return [];
   }
   const data: SpotifySearchResponse  = await res.json();
@@ -278,7 +320,18 @@ async function threeSongSearch(youtubeTitle: string, accessToken: string | undef
 }
 
 export async function multiThreeSongSearch(youtubeTitles: string[], accessToken: string | undefined): Promise<SpotifyTrack[][]> {
-  const promises = youtubeTitles.map(title => threeSongSearch(title, accessToken));
-  const results = await Promise.all(promises);
+  const results: SpotifyTrack[][] = [];
+  const BATCH_SIZE = 25; 
+  for (let i = 0; i < youtubeTitles.length; i += BATCH_SIZE) {
+    const batch = youtubeTitles.slice(i, i + BATCH_SIZE);
+    console.log(`Processing batch ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(youtubeTitles.length/BATCH_SIZE)}`);
+    const batchPromises = batch.map(async (title) => {
+      return await threeSongSearch(title, accessToken);
+    });
+    const batchResults = await Promise.all(batchPromises);
+    results.push(...batchResults);
+    await delay(1000);
+  }
   return results;
 }
+

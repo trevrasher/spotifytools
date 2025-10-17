@@ -113,3 +113,7 @@ body {
   border: 2px solid var(--green);
   border-radius: 6px;
 }
+
+.low-similarity {
+  background-color: rgb(105, 7, 7);
+}

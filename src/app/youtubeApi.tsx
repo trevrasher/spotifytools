@@ -55,7 +55,7 @@ export async function fetchAllYouTubePlaylistVideos(playlistLink: string): Promi
       break;
     }
     const data: YouTubePlaylistResponse = await res.json();
-    const titles = data.items.map(item => item.snippet.title);    
+    const titles = data.items.map(item => sanitizeToUTF8(item.snippet.title));    
     videos.push(...titles);
     nextPageToken = data.nextPageToken;
     } while(nextPageToken);
@@ -67,3 +67,12 @@ function extractPlaylistId(url: string): string | null {
   return match ? match[1] : null;
 }
 
+
+function sanitizeToUTF8(title: string): string {
+  let cleanTitle = title
+    .replace(/[\u3000-\u303f]/g, '') 
+    .replace(/\|/g, '') 
+    .replace(/\s+/g, ' ') 
+    .trim(); 
+  return cleanTitle;
+}

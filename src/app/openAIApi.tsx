@@ -14,6 +14,7 @@ export interface sToTrack {
   youtubeTitle: string
   track: SpotifyTrack;
   similarity: number;
+  confirmed: boolean;
 }
 
 
@@ -26,24 +27,20 @@ export async function compareSpotifyYoutube(
   youtubeTitles: string[], 
   spotifyTrackSets: SpotifyTrack[][]
 ): Promise<sToTrack[]> {
-  let prompt = `You will be given multiple YouTube video titles and for each one, three Spotify tracks to compare against. For each YouTube video, return only the most similar Spotify track number (1-3) and similarity score (0-1).
-
-  Format your response exactly like this:
-  Video 1: Song 2: 0.97
-  Video 2: Song 1: 0.84
-  Video 3: Song 3: 0.91
-
-  YouTube Videos and Spotify Tracks:\n\n`;
+  let prompt = `Begin with a concise checklist (3-7 bullets) of your approach before analyzing the YouTube videos and their paired Spotify tracks. For each YouTube video, identify the single most similar Spotify track, specifying its track number (1–3) and a similarity score between 0 and 1. Format your response exactly as follows:
+V1: S2: 0.97
+V2: S1: 0.84
+V2: S3: 0.91
+Only produce output in this specified format. List of YouTube videos and their corresponding Spotify tracks:\n\n`;
 
   youtubeTitles.forEach((youtubeTitle, videoIndex) => {
-    prompt += `Video ${videoIndex + 1}: "${youtubeTitle}"\n`;
+    prompt += `V${videoIndex + 1}:"${youtubeTitle}"\n`;
     
     const spotifyTracks = spotifyTrackSets[videoIndex];
     spotifyTracks.forEach((track, trackIndex) => {
-      const artists = track.artists.map(a => a.name).join(", ");
-      prompt += `  Song ${trackIndex + 1}: ${track.name} by ${artists}\n`;
+      const artists = track.artists.map(a => a.name).join(",");
+      prompt += `S${trackIndex + 1}:${track.name}-${artists}\n`;
     });
-    prompt += '\n';
   });
   const response = await client.responses.create({
     model:"gpt-5-mini",
@@ -66,15 +63,19 @@ function parseBatchResponse(
   const lines = responseText.split('\n');
 
   lines.forEach(line => {
-    const match = line.match(/Video\s*(\d+):\s*Song\s*(\d+):\s*([01](?:\.\d+)?)/);
+    const match = line.match(/V(\d+):\s*S(\d+):\s*([01](?:\.\d+)?)/);
     if(match) {
       const videoIndex = parseInt(match[1], 10) - 1;
       const songIndex = parseInt(match[2], 10) - 1;
       const similarity = parseFloat(match[3]);
       const track = spotifyTrackSets[videoIndex]?.[songIndex];
-    if (track) {
-        results.push({ youtubeTitle: youtubeTitles[videoIndex], track, similarity });
-    }}});
+    if (track && similarity>0.94) {
+        results.push({ youtubeTitle: youtubeTitles[videoIndex], track, similarity, confirmed:true });
+    }
+    if (track && similarity<=0.94) {
+        results.push({ youtubeTitle: youtubeTitles[videoIndex], track, similarity, confirmed:false });
+    }
+    }});
   return results;
   }
 

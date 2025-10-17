@@ -3,9 +3,10 @@ import Header from "@/components/header"
 import { useState } from "react"
 import { fetchAllYouTubePlaylistVideos } from "../youtubeApi";
 import { compareSpotifyYoutube } from "../openAIApi";
-import { multiThreeSongSearch } from "../spotifyApi";
+import { multiThreeSongSearch, SpotifyTrack } from "../spotifyApi";
 import { useSession } from "next-auth/react";
 import { sToTrack } from "../openAIApi";
+import { createNewPlaylist, addToPlaylist} from "../spotifyApi";
 
 
 export default function youtubeConverter() {
@@ -22,9 +23,24 @@ export default function youtubeConverter() {
             const spotifyTrackSets = await multiThreeSongSearch(youtubeTitles, session?.accessToken)
             const sValues = await compareSpotifyYoutube(youtubeTitles, spotifyTrackSets)
             setsimValues(sValues);
+            console.log(sValues);
+            setNewTextInput("");
         } else {
             alert("Please enter a valid YouTube playlist link.")
         }
+    }
+
+    const handleSubmitButton = async () => {
+        const submitURI = simValues?.filter(item => item.confirmed).map(item=> item.track.uri) || [];
+        const playlistID = await createNewPlaylist(session?.accessToken, "Youtube Conversion");
+        addToPlaylist(session?.accessToken, submitURI, playlistID);
+    }
+
+    const handleCheckboxChange = (index: number) => {
+        if(!simValues) return;
+        let updatedSimValues = [...simValues];
+        updatedSimValues[index].confirmed = !updatedSimValues[index].confirmed;
+        setsimValues(updatedSimValues);
     }
 
     return(
@@ -41,6 +57,7 @@ export default function youtubeConverter() {
             <table className = "converterTable">
                 <thead>
                     <tr>
+                        <th>Confirm</th>
                         <th>YouTube Video</th>
                         <th>Matched Spotify Track</th>
                         <th>Artists</th>
@@ -49,7 +66,10 @@ export default function youtubeConverter() {
                 </thead>
                  <tbody>
                     {simValues?.map((item, index) => (
-                        <tr key={index}>
+                        <tr key={index} className={!item.confirmed ? "low-similarity" : ''}>
+                        <td>
+                            <input type="checkbox" checked={item.confirmed} onChange={() => handleCheckboxChange(index)}/>
+                        </td>
                         <td>{item.youtubeTitle}</td>
                         <td>{item.track.name}</td>
                         <td>{item.track.artists.map(artist => artist.name).join(", ")}</td>
@@ -57,6 +77,8 @@ export default function youtubeConverter() {
                 </tr>))}
                 </tbody>
             </table>
+            <button onClick={handleSubmitButton}>Submit Playlist</button>
+
         </div>
         </>
     )
