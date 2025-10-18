@@ -19,6 +19,24 @@ export default function Home() {
   const [playlistArray, setPlaylistArray] = useState<Playlist[]>([]);
   const [selectedArtist, setSelectedArtist] = useState<filteredArtist | null>(null);
   const [placedArtists, setPlacedArtists] = useState<filteredArtist[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isFadingOut, setIsFadingOut] = useState(false);
+
+useEffect(() => {
+  if (error) {
+    setIsFadingOut(false); 
+    
+    const timer = setTimeout(() => {
+      setIsFadingOut(true); 
+      setTimeout(() => {
+        setError(null);
+        setIsFadingOut(false);
+      }, 500); 
+    }, 3500); 
+
+    return () => clearTimeout(timer);
+  }
+}, [error]);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -37,12 +55,22 @@ export default function Home() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null); 
+    
+    if(playlistArray.length >= 2) {
+      setNewPlaylist("");
+      setError("You cannot create more than 10 playlists.");
+      return;
+    }
+    
     if (playlistName.trim() && !playlistArray.some(p => p.playlistName === playlistName.trim())) {
       setPlaylistArray(prev => [
         ...prev,
         { playlistName: playlistName, artists: [] }
       ]);
       setNewPlaylist('');
+    } else if (!playlistName.trim()) {
+      setError("Please enter a playlist name.");
     }
   };
 
@@ -108,9 +136,16 @@ export default function Home() {
               </div>
             ))}
           </div>
-          <button className = "submitPlaylistButton" onClick={() =>multiplePlaylistCreation(session?.accessToken, playlistArray)}> submit playlist button </button>
+            <div className="converter-button-container">
+              <button className = "converter-submit-button" onClick={() =>multiplePlaylistCreation(session?.accessToken, playlistArray)}> Submit Playlists </button>
+            </div>
         </div>
       </div>
+      {error && (
+        <div className={`error ${isFadingOut ? 'fade-out' : ''}`}>
+          {error}
+        </div>
+      )}
     </>
   );
 }

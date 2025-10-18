@@ -13,20 +13,32 @@ export default function youtubeConverter() {
     const [textInput, setNewTextInput] = useState<string>("");
     const { data: session, status } = useSession();
     const [simValues, setsimValues] = useState<sToTrack[]>();
+    const [loading, setLoading] = useState<boolean>(false);
 
 
     const handleSubmit = async (e:React.FormEvent) => {
         e.preventDefault();
-        const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.*[?&]list=([a-zA-Z0-9_-]+)/;
-        if(youtubeRegex.test(textInput)) {
+        setNewTextInput("");
+        setLoading(true);
+
+        try {
+            const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.*[?&]list=([a-zA-Z0-9_-]+)/;
+            if(!youtubeRegex.test(textInput)) {
+                throw new Error("Please enter a valid YouTube playlist link.");
+            }
             const youtubeTitles = await fetchAllYouTubePlaylistVideos(textInput);
-            const spotifyTrackSets = await multiThreeSongSearch(youtubeTitles, session?.accessToken)
-            const sValues = await compareSpotifyYoutube(youtubeTitles, spotifyTrackSets)
+            if(!youtubeTitles || youtubeTitles.length === 0) {
+                throw new Error("No videos found in playlist or playlist is private.");
+            }
+            const spotifyTrackSets = await multiThreeSongSearch(youtubeTitles, session?.accessToken);
+            const sValues = await compareSpotifyYoutube(youtubeTitles, spotifyTrackSets);
             setsimValues(sValues);
             console.log(sValues);
-            setNewTextInput("");
-        } else {
-            alert("Please enter a valid YouTube playlist link.")
+            
+        } catch (err) {
+            console.error("Conversion error:", err);
+        } finally {
+            setLoading(false);
         }
     }
 
@@ -46,39 +58,45 @@ export default function youtubeConverter() {
     return(
         <>
         <Header></Header>
-        <form onSubmit={handleSubmit}>
+        {!loading && <form onSubmit={handleSubmit} className="converter-playlist-container">
             <input type="text" 
             value={textInput} 
-            placeholder="Input a public YouTube playlist to convert..."
+            placeholder="Input a public YouTube playlist link to convert to Spotify..."
             onChange={(e) => setNewTextInput(e.target.value)} 
-            className="playlist-input"></input>
-        </form>
-        <div>
-            <table className = "converterTable">
+            className="converter-playlist-input"></input>
+        </form>}
+        {loading && <header className="loadingText">Converting playlist. This may take a few minutes depending on size.</header>}
+        <div className="converter-table-container">
+           {simValues && <table className = "converterTable">
                 <thead>
                     <tr>
-                        <th>Confirm</th>
-                        <th>YouTube Video</th>
-                        <th>Matched Spotify Track</th>
-                        <th>Artists</th>
-                        <th>Similarity Score</th>
+                        <th className="text-center">Confirm</th>
+                        <th className="text-center">YouTube Video</th>
+                        <th className="text-center">Matched Spotify Track</th>
+                        <th className="text-center">Artists</th>
+                        <th className="text-center">Similarity Score</th>
                     </tr>
                 </thead>
                  <tbody>
                     {simValues?.map((item, index) => (
                         <tr key={index} className={!item.confirmed ? "low-similarity" : ''}>
-                        <td>
+                        <td className="text-center">
                             <input type="checkbox" checked={item.confirmed} onChange={() => handleCheckboxChange(index)}/>
                         </td>
-                        <td>{item.youtubeTitle}</td>
-                        <td>{item.track.name}</td>
-                        <td>{item.track.artists.map(artist => artist.name).join(", ")}</td>
-                        <td>{(item.similarity * 100).toFixed(1)}%</td>
+                        <td className="text-center">{item.youtubeTitle}</td>
+                        <td className="text-center">{item.track.name}</td>
+                        <td className="text-center">{item.track.artists.map(artist => artist.name).join(", ")}</td>
+                        <td className="text-center">{(item.similarity * 100).toFixed(1)}%</td>
                 </tr>))}
                 </tbody>
-            </table>
-            <button onClick={handleSubmitButton}>Submit Playlist</button>
-
+            </table>}
+            {simValues && (
+                <div className="converter-button-container">
+                    <button onClick={handleSubmitButton} className="converter-submit-button">
+                        Submit Playlist
+                    </button>
+                </div>
+            )}
         </div>
         </>
     )
