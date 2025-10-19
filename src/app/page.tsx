@@ -79,14 +79,14 @@ useEffect(() => {
       <Header></Header>
       <div className="main-content">
 {/* LIST OF ARTISTS */}
-        <ol>
+        <div className="artist-grid">
           {likedSongs &&
             Object.entries(artistFilter(likedSongs)).sort((a, b) => b[1].count - a[1].count).map(([_, info]) => (
                 <div className={`artist-listing${selectedArtist?.artistName === info.artistName ? " selected-artist" : ""}${placedArtists.some(a => a.artistName === info.artistName) ? " crossed-artist" : ""}`} key={info.artistName} onClick={() => setSelectedArtist(info)}>
                   {info.artistName}: {info.count}
                 </div>
               ))}
-        </ol>
+        </div>
 {/* PLAYLIST */}
         <div className="playlist-container">
           <form onSubmit={handleSubmit}>
@@ -137,7 +137,7 @@ useEffect(() => {
             ))}
           </div>
             <div className="converter-button-container">
-              <button className = "converter-submit-button" onClick={() =>multiplePlaylistCreation(session?.accessToken, playlistArray)}> Submit Playlists </button>
+             {placedArtists.length>=1 && ( <button className = "converter-submit-button" onClick={() =>multiplePlaylistCreation(session?.accessToken, playlistArray)}> Submit Playlists </button>)}
             </div>
         </div>
       </div>

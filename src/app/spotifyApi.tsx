@@ -147,7 +147,7 @@ export async function fetchLikedSongs(accessToken: string | undefined): Promise<
     });
     if (!firstRes.ok) {
         const error = await firstRes.json();
-        console.error("Spotify API error:", error);
+        console.error("Spotify API error: (fetchLikedSongs)", error);
         return null;
     }
     const firstData = await firstRes.json() as SpotifyTracksResponse;

@@ -1,4 +1,5 @@
 "use server"
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 
 export interface YouTubePlaylistSnippet {
   publishedAt: string;
@@ -40,7 +41,7 @@ export interface YouTubePlaylistResponse {
   items: YouTubePlaylistItem[];
 }
 
-const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+
 
 export async function fetchAllYouTubePlaylistVideos(playlistLink: string): Promise<string[]> {
     const playlistId = extractPlaylistId(playlistLink);

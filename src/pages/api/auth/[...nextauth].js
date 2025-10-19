@@ -50,6 +50,10 @@ export const authOptions = {
     }
     }),
   ],
+  pages: {
+    signIn: '/login',
+    error: '/login',
+  },
   callbacks: {
     async jwt({ token, account }) {
       if (account) {
@@ -74,6 +78,14 @@ export const authOptions = {
       session.refreshToken = token.refreshToken;
       session.error = token.error;
       return session;
+    },
+    
+    async redirect({ url, baseUrl }) {
+      // Redirect to home page after successful login
+      if (url.startsWith(baseUrl)) {
+        return url;
+      }
+      return baseUrl + '/';
     },
   },
 }
