@@ -11,6 +11,11 @@ export interface Playlist {
   artists: filteredArtist[];
 }
 
+interface placedArtistCount {
+  artistName: string;
+  count: number;
+}
+
 export default function Home() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -18,7 +23,7 @@ export default function Home() {
   const [playlistName, setNewPlaylist] = useState('');
   const [playlistArray, setPlaylistArray] = useState<Playlist[]>([]);
   const [selectedArtist, setSelectedArtist] = useState<filteredArtist | null>(null);
-  const [placedArtists, setPlacedArtists] = useState<filteredArtist[]>([]);
+  const [placedArtists, setPlacedArtists] = useState<placedArtistCount[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isFadingOut, setIsFadingOut] = useState(false);
 
@@ -74,6 +79,23 @@ useEffect(() => {
     }
   };
 
+  const removeArtistFromPlaylist = (playlistIdx: number, artistIdx: number, artistName: string) => {
+    setPlaylistArray(prev => prev.map((playlist, i) => 
+        i === playlistIdx 
+          ? { ...playlist, artists: playlist.artists.filter((_, j) => j !== artistIdx) }
+          : playlist
+      )
+    );
+    
+    setPlacedArtists(prev => 
+      prev.map(placedArtist => 
+        placedArtist.artistName === artistName
+          ? { ...placedArtist, count: Math.max(0, placedArtist.count - 1) }
+          : placedArtist
+      ).filter(artist => artist.count > 0) 
+    );
+  };
+
   return (
     <>
       <Header></Header>
@@ -105,32 +127,66 @@ useEffect(() => {
                 key={playlistName + idx}
                 onClick={() => {
                   if (selectedArtist) {
-                    setPlaylistArray(prev =>
-                      prev.map((playlist, i) =>
-                        i === idx && !playlist.artists.some(a => a.artistName === selectedArtist.artistName)? { ...playlist, artists: [...playlist.artists, selectedArtist] }: playlist
-                      )
-                    );
+                    if(!playlistArray[idx].artists.some(a => a.artistName === selectedArtist.artistName)) {
+                      setPlaylistArray(prev =>
+                        prev.map((playlist, i) =>
+                          i === idx ? { ...playlist, artists: [...playlist.artists, selectedArtist] } : playlist
+                        )
+                      );
+                      
+                      setPlacedArtists(prev => {
+                        const existingArtist = prev.find(a => a.artistName === selectedArtist.artistName);
+                        if (existingArtist) {
+                          return prev.map(a => 
+                            a.artistName === selectedArtist.artistName 
+                              ? { ...a, count: a.count + 1 }
+                              : a
+                          );
+                        } else {
+                          return [...prev, { artistName: selectedArtist.artistName, count: 1 }];
+                        }
+                      });
+                    }
                     setSelectedArtist(null);
-                    setPlacedArtists(prev =>
-                      prev.includes(selectedArtist) ? prev : [...prev, selectedArtist]
-                    );
                   }
                 }}
               >
-                <span className="playlist-text">{playlistName}</span>
-                <button
-                  className="delete-button"
-                  onClick={() => {
-                    setPlaylistArray(prev =>
-                      prev.filter((_, i) => i !== idx)
-                    );
-                  }}
-                >
-                  X
-                </button>
-                {artists.map((artist, idx) => (
-                  <div key={artist.artistName + idx} className="artist-in-playlist">
-                    {artist.artistName}
+                <div className="playlist-header">
+                  <span className="playlist-text">{playlistName}</span>
+                  <button
+                    className="delete-button"
+                    onClick={(e) => {
+                      e.stopPropagation(); 
+                      const playlistToDelete = playlistArray[idx];
+                      setPlacedArtists(prev => 
+                        prev.map(placedArtist => {
+                          const timesInDeletedPlaylist = playlistToDelete.artists.filter(
+                            artist => artist.artistName === placedArtist.artistName
+                          ).length;
+                          
+                          return {
+                            ...placedArtist,
+                            count: Math.max(0, placedArtist.count - timesInDeletedPlaylist)
+                          };
+                        }).filter(artist => artist.count > 0) 
+                      );
+                      
+                      setPlaylistArray(prev =>
+                        prev.filter((_, i) => i !== idx)
+                      );
+                    }}
+                  >
+                    X
+                  </button>
+                </div>
+                {artists.map((artist, artistIdx) => (
+                  <div key={artist.artistName + artistIdx} className="playlist-artist">
+                    <button onClick={(e) => {
+                        e.stopPropagation();
+                        removeArtistFromPlaylist(idx, artistIdx, artist.artistName);
+                      }} className="playlist-artist-button">
+                        {artist.artistName}
+                    </button>
                   </div>
                 ))}
               </div>

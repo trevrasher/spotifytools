@@ -119,18 +119,27 @@ body {
 .playlist {
   border: 2px solid var(--gray);
   border-radius: 6px;
-  min-height:50px;
-  margin-left:12px;
-  margin-right:12px;
-  margin-top:6px;
-  margin-bottom:8px;
-
+  min-height: 50px;
+  margin: 12px 12px 6px 8px;
+  padding-bottom: 15px;
 }
 
 .playlist-text {
   display:flex;
   align-items: center;
   justify-content:center;
+}
+
+.playlist-artist {
+  padding-left:10px;
+}
+
+.playlist-artist-button {
+  background-color:var(--gray);
+  border:2px solid var(--gray);
+  border-radius:6px;
+  margin-bottom:2px;
+  cursor:pointer;
 }
 
 .crossed-artist {
@@ -261,4 +270,27 @@ body {
   max-height: 800px;
   overflow-y: auto;
   padding: 0px 10px 
+}
+
+.playlist-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 3px solid var(--gray);
+}
+
+.delete-button {
+  background-color: #dc3545;
+  border: 2px solid  #dc3545;
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.1s linear;
+}
+
+.delete-button:hover {
+  background-color: solid var(--gray);
+  color:#dc3545;
 }
