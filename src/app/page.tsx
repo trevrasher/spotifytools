@@ -155,7 +155,7 @@ useEffect(() => {
                   <span className="playlist-text">{playlistName}</span>
                   <button
                     className="delete-button"
-                    onClick={(e) => {
+                    onClick={ (e) => {
                       e.stopPropagation(); 
                       const playlistToDelete = playlistArray[idx];
                       setPlacedArtists(prev => 
@@ -163,7 +163,6 @@ useEffect(() => {
                           const timesInDeletedPlaylist = playlistToDelete.artists.filter(
                             artist => artist.artistName === placedArtist.artistName
                           ).length;
-                          
                           return {
                             ...placedArtist,
                             count: Math.max(0, placedArtist.count - timesInDeletedPlaylist)
@@ -181,10 +180,10 @@ useEffect(() => {
                 </div>
                 {artists.map((artist, artistIdx) => (
                   <div key={artist.artistName + artistIdx} className="playlist-artist">
-                    <button onClick={(e) => {
+                    <button onClick={!selectedArtist? (e) => {
                         e.stopPropagation();
                         removeArtistFromPlaylist(idx, artistIdx, artist.artistName);
-                      }} className="playlist-artist-button">
+                      }:undefined} className="playlist-artist-button">
                         {artist.artistName}
                     </button>
                   </div>
