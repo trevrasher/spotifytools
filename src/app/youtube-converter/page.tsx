@@ -3,13 +3,13 @@ import Header from "@/components/header"
 import { useState } from "react"
 import { fetchAllYouTubePlaylistVideos } from "../youtubeApi";
 import { compareSpotifyYoutube } from "../openAIApi";
-import { multiThreeSongSearch, SpotifyTrack } from "../spotifyApi";
+import { multiThreeSongSearch } from "../spotifyApi";
 import { useSession } from "next-auth/react";
 import { sToTrack } from "../openAIApi";
 import { createNewPlaylist, addToPlaylist} from "../spotifyApi";
 
 
-export default function youtubeConverter() {
+export default function YoutubeConverter() {
     const [textInput, setNewTextInput] = useState<string>("");
     const { data: session, status } = useSession();
     const [simValues, setsimValues] = useState<sToTrack[]>();
@@ -50,7 +50,7 @@ export default function youtubeConverter() {
 
     const handleCheckboxChange = (index: number) => {
         if(!simValues) return;
-        let updatedSimValues = [...simValues];
+        const updatedSimValues = [...simValues];
         updatedSimValues[index].confirmed = !updatedSimValues[index].confirmed;
         setsimValues(updatedSimValues);
     }

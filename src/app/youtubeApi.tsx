@@ -46,7 +46,7 @@ export interface YouTubePlaylistResponse {
 export async function fetchAllYouTubePlaylistVideos(playlistLink: string): Promise<string[]> {
     const playlistId = extractPlaylistId(playlistLink);
     let nextPageToken: string | undefined = undefined;
-    let videos: string[] = [];
+    const videos: string[] = [];
     do {
     const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&key=${YOUTUBE_API_KEY}${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`;
     const res = await fetch(url);
@@ -70,7 +70,7 @@ function extractPlaylistId(url: string): string | null {
 
 
 function sanitizeToUTF8(title: string): string {
-  let cleanTitle = title
+  const cleanTitle = title
     .replace(/[\u3000-\u303f]/g, '') 
     .replace(/\|/g, '') 
     .replace(/\s+/g, ' ') 
