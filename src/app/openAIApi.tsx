@@ -2,7 +2,10 @@
 
 import OpenAI from "openai";
 import { Agent, run } from '@openai/agents';
-const client = new OpenAI();
+
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 const simAgent = new Agent({
   name: "Similarity agent",
