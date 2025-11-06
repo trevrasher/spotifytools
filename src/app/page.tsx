@@ -1,6 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { fetchLikedSongs, SpotifyTrackItem, filteredArtist, multiplePlaylistCreation} from "./spotifyApi";
 import { artistFilter } from "./utils/spotifyUtils";
@@ -26,6 +26,7 @@ export default function Home() {
   const [placedArtists, setPlacedArtists] = useState<placedArtistCount[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isFadingOut, setIsFadingOut] = useState(false);
+  
 
 useEffect(() => {
   if (error) {
@@ -52,9 +53,18 @@ useEffect(() => {
 
   useEffect(() => {
     if (status === "authenticated") {
-      fetchLikedSongs(session?.accessToken).then(data => {
-        setLikedSongs(data);
-      });
+      // Check if data exists in sessionStorage
+      const cachedSongs = sessionStorage.getItem('spotifyLikedSongs');
+      
+      if (cachedSongs) {
+        setLikedSongs(JSON.parse(cachedSongs));
+      } else {
+        fetchLikedSongs(session?.accessToken).then(data => {
+          setLikedSongs(data);
+          // Cache the data
+          sessionStorage.setItem('spotifyLikedSongs', JSON.stringify(data));
+        });
+      }
     }
   }, [status]);
 
