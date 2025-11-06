@@ -1,4 +1,4 @@
-import { SpotifyTrackItem, filteredArtist } from '../spotifyApi';
+import { SpotifyTrackItem, filteredArtist } from '../../lib/spotifyApi';
 
 export function artistFilter(data: SpotifyTrackItem[]) {
     const artists: { [name: string]: filteredArtist } = {};

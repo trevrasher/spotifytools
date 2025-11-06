@@ -1,10 +1,11 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { fetchLikedSongs, SpotifyTrackItem, filteredArtist, multiplePlaylistCreation} from "./spotifyApi";
+import { fetchLikedSongs, SpotifyTrackItem, filteredArtist, multiplePlaylistCreation} from "../lib/spotifyApi";
 import { artistFilter } from "./utils/spotifyUtils";
 import Header from "@/components/header";
+import ErrorPopup from "@/components/errorPopup";
 
 export interface Playlist {
   playlistName: string;
@@ -25,68 +26,59 @@ export default function Home() {
   const [selectedArtist, setSelectedArtist] = useState<filteredArtist | null>(null);
   const [placedArtists, setPlacedArtists] = useState<placedArtistCount[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [isFadingOut, setIsFadingOut] = useState(false);
+  
+  const MAX_PLAYLISTS = 10;
+  const CACHE_KEY = 'spotifyLikedSongs';
   
 
-useEffect(() => {
-  if (error) {
-    setIsFadingOut(false); 
-    
-    const timer = setTimeout(() => {
-      setIsFadingOut(true); 
-      setTimeout(() => {
-        setError(null);
-        setIsFadingOut(false);
-      }, 500); 
-    }, 3500); 
-
-    return () => clearTimeout(timer);
-  }
-}, [error]);
-
+  // Redirect unauthenticated users to login
   useEffect(() => {
     if (status === "loading") return;
     if (status === "unauthenticated") {
-      router.push("../login");
+      router.push("/login");
     }
   }, [status, router]);
 
+  // Cache liked songs
   useEffect(() => {
-    if (status === "authenticated") {
-      // Check if data exists in sessionStorage
-      const cachedSongs = sessionStorage.getItem('spotifyLikedSongs');
-      
-      if (cachedSongs) {
-        setLikedSongs(JSON.parse(cachedSongs));
-      } else {
-        fetchLikedSongs(session?.accessToken).then(data => {
-          setLikedSongs(data);
-          // Cache the data
-          sessionStorage.setItem('spotifyLikedSongs', JSON.stringify(data));
-        });
-      }
+    if (status !== "authenticated") return;
+    
+    const cachedSongs = sessionStorage.getItem(CACHE_KEY);
+    if (cachedSongs) {
+      setLikedSongs(JSON.parse(cachedSongs));
+    } else {
+      fetchLikedSongs(session?.accessToken).then(data => {
+        setLikedSongs(data);
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify(data));
+      });
     }
   }, [status]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null); 
+    setError(null);
     
-    if(playlistArray.length >= 2) {
+    if (playlistArray.length >= MAX_PLAYLISTS) {
       setNewPlaylist("");
-      setError("You cannot create more than 10 playlists.");
+      setError(`You cannot create more than ${MAX_PLAYLISTS} playlists.`);
       return;
     }
-    
-    if (playlistName.trim() && !playlistArray.some(p => p.playlistName === playlistName.trim())) {
-      setPlaylistArray(prev => [
-        ...prev,
-        { playlistName: playlistName, artists: [] }
-      ]);
-      setNewPlaylist('');
-    } else if (!playlistName.trim()) {
+
+    if (!playlistName.trim()) {
       setError("Please enter a playlist name.");
+      return;
     }
+
+    if (playlistArray.some(p => p.playlistName === playlistName.trim())) {
+      setError("You cannot enter duplicate playlist names.");
+      return; 
+    }
+
+    setPlaylistArray(prev => [
+      ...prev,
+      { playlistName: playlistName.trim(), artists: [] }
+    ]);
+    setNewPlaylist('');
   };
 
   const removeArtistFromPlaylist = (playlistIdx: number, artistIdx: number, artistName: string) => {
@@ -106,9 +98,62 @@ useEffect(() => {
     );
   };
 
+    const incrementArtistCount = (artistName: string) => {
+    setPlacedArtists(prev => {
+      const existingArtist = prev.find(a => a.artistName === artistName);
+      if (existingArtist) {
+        return prev.map(a => 
+          a.artistName === artistName 
+            ? { ...a, count: a.count + 1 }
+            : a
+        );
+      }
+      return [...prev, { artistName, count: 1 }];
+    });
+  };
+
+  const addArtistToPlaylist = (playlistIdx: number) => {
+    if (!selectedArtist) return;
+    
+    const isDuplicate = playlistArray[playlistIdx].artists.some(
+      a => a.artistName === selectedArtist.artistName
+    );
+    if (isDuplicate) return;
+    
+    setPlaylistArray(prev =>
+      prev.map((playlist, i) =>
+        i === playlistIdx 
+          ? { ...playlist, artists: [...playlist.artists, selectedArtist] } 
+          : playlist
+      )
+    );
+    
+    incrementArtistCount(selectedArtist.artistName);
+    setSelectedArtist(null);
+  };
+
+  const deletePlaylist = (idx: number) => {
+    const playlistToDelete = playlistArray[idx];
+    
+    setPlacedArtists(prev => 
+      prev.map(placedArtist => {
+        const timesInDeletedPlaylist = playlistToDelete.artists.filter(
+          artist => artist.artistName === placedArtist.artistName
+        ).length;
+        
+        return {
+          ...placedArtist,
+          count: Math.max(0, placedArtist.count - timesInDeletedPlaylist)
+        };
+      }).filter(artist => artist.count > 0)
+    );
+    
+    setPlaylistArray(prev => prev.filter((_, i) => i !== idx));
+  };
+
   return (
     <>
-      <Header></Header>
+      <Header />
       <div className="main-content">
 {/* LIST OF ARTISTS */}
         <div className="artist-grid">
@@ -135,54 +180,15 @@ useEffect(() => {
               <div
                 className="playlist"
                 key={playlistName + idx}
-                onClick={() => {
-                  if (selectedArtist) {
-                    if(!playlistArray[idx].artists.some(a => a.artistName === selectedArtist.artistName)) {
-                      setPlaylistArray(prev =>
-                        prev.map((playlist, i) =>
-                          i === idx ? { ...playlist, artists: [...playlist.artists, selectedArtist] } : playlist
-                        )
-                      );
-                      
-                      setPlacedArtists(prev => {
-                        const existingArtist = prev.find(a => a.artistName === selectedArtist.artistName);
-                        if (existingArtist) {
-                          return prev.map(a => 
-                            a.artistName === selectedArtist.artistName 
-                              ? { ...a, count: a.count + 1 }
-                              : a
-                          );
-                        } else {
-                          return [...prev, { artistName: selectedArtist.artistName, count: 1 }];
-                        }
-                      });
-                    }
-                    setSelectedArtist(null);
-                  }
-                }}
+                onClick={() => addArtistToPlaylist(idx)}
               >
                 <div className="playlist-header">
                   <span className="playlist-text">{playlistName}</span>
                   <button
-                    className="delete-button"
-                    onClick={ (e) => {
-                      e.stopPropagation(); 
-                      const playlistToDelete = playlistArray[idx];
-                      setPlacedArtists(prev => 
-                        prev.map(placedArtist => {
-                          const timesInDeletedPlaylist = playlistToDelete.artists.filter(
-                            artist => artist.artistName === placedArtist.artistName
-                          ).length;
-                          return {
-                            ...placedArtist,
-                            count: Math.max(0, placedArtist.count - timesInDeletedPlaylist)
-                          };
-                        }).filter(artist => artist.count > 0) 
-                      );
-                      
-                      setPlaylistArray(prev =>
-                        prev.filter((_, i) => i !== idx)
-                      );
+                    className="btn btn-danger btn-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deletePlaylist(idx);
                     }}
                   >
                     X
@@ -202,15 +208,11 @@ useEffect(() => {
             ))}
           </div>
             <div className="converter-button-container">
-             {placedArtists.length>=1 && ( <button className = "converter-submit-button" onClick={() =>multiplePlaylistCreation(session?.accessToken, playlistArray)}> Submit Playlists </button>)}
+             {placedArtists.length>=1 && ( <button className="btn btn-primary btn-lg" onClick={() =>multiplePlaylistCreation(session?.accessToken, playlistArray)}> Submit Playlists </button>)}
             </div>
         </div>
       </div>
-      {error && (
-        <div className={`error ${isFadingOut ? 'fade-out' : ''}`}>
-          {error}
-        </div>
-      )}
+      <ErrorPopup errorText={error} onClear={() => setError(null)} />
     </>
   );
 }

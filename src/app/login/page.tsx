@@ -6,7 +6,7 @@ export default function LoginPage() {
     <div className="login-container">
       <header className="login-header"><span className="spotify-green">Spotify</span>Tools</header>
       <div>
-      <button onClick={() => signIn("spotify", { callbackUrl: '/' })} className="login-button">
+      <button onClick={() => signIn("spotify", { callbackUrl: '/' })} className="btn btn-primary btn-lg">
         Login with Spotify
       </button>
       </div>

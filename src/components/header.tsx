@@ -16,7 +16,7 @@ export default function Header() {
             <h2><Link href="/">Playlist Management</Link></h2>
             <h2><Link href="/youtube-converter">YouTube to Spotify</Link></h2>
             {session && (
-                <button onClick={handleLogout} className="logout-button">
+                <button onClick={handleLogout} className="btn btn-primary logout-button">
                     Logout
                 </button>
             )}

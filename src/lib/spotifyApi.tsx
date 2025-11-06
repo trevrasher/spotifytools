@@ -1,5 +1,5 @@
 "use server"
-import { Playlist } from "./page";
+import { Playlist } from "../app/page";
 
 export interface SpotifyArtist {
   external_urls: { spotify: string };
