@@ -12,6 +12,10 @@ export interface Playlist {
   artists: filteredArtist[];
 }
 
+export const metadata = {
+  title: "SpotifyTools",
+};
+
 interface placedArtistCount {
   artistName: string;
   count: number;
